@@ -4,7 +4,9 @@
  {org.clojure/clojure {:mvn/version "1.11.3"}
   org.clojure/core.async {:mvn/version "1.3.610"}
   metosin/malli {:mvn/version "0.18.0"}
-  cljfx/cljfx {:mvn/version "1.9.5"}}
+  com.badlogicgames.gdx/gdx {:mvn/version "1.12.1"}
+  com.badlogicgames.gdx/gdx-backend-lwjgl3 {:mvn/version "1.12.1"}
+  com.badlogicgames.gdx/gdx-platform$natives-desktop {:mvn/version "1.12.1"}}
 
  ;; end of deps
 

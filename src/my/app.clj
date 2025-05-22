@@ -1,21 +1,30 @@
 (ns my.app
-  (:require [cljfx.api :as fx]
-            [my.components.event-handler :refer [event-handler *state]]
-            [my.components.root-window :refer [root-window]])
-  (:gen-class))
+  (:import [com.badlogic.gdx ApplicationListener Gdx]
+           [com.badlogic.gdx.backends.lwjgl3 Lwjgl3Application Lwjgl3ApplicationConfiguration]
+           [com.badlogic.gdx.graphics GL20]))
 
+(defn create-listener []
+  (reify ApplicationListener
+    (create [_]
+      (println "Game started!"))
 
-(def renderer
-  (fx/create-renderer
-    :middleware
-    (fx/wrap-map-desc assoc :fx/type root-window)
-    :opts
-    {:fx.opt/map-event-handler event-handler}))
+    (resize [_ width height]
+      (println "Window resized to:" width "x" height))
 
-(defn render
-  []
-  (fx/mount-renderer *state renderer))
+    (render [_]
+      (doto Gdx/gl
+        (.glClearColor 0.2 0.4 0.6 1)
+        (.glClear GL20/GL_COLOR_BUFFER_BIT)))
+
+    (pause [_])
+    (resume [_])
+    (dispose [_])))
+
+(defn render []
+  (let [config (doto (Lwjgl3ApplicationConfiguration.)
+                 (.setTitle "Hello LibGDX")
+                 (.setWindowedMode 800 600))]
+    (Lwjgl3Application. (create-listener) config)))
 
 (defn -main [& args]
   (render))
-
