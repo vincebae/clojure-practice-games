@@ -1,4 +1,4 @@
-{:paths ["src" "resources"]
+{:paths ["src" "resources" "assets"]
 
  :deps
  {com.badlogicgames.gdx/gdx {:mvn/version "1.12.1"}
