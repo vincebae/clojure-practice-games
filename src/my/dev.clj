@@ -1,7 +1,7 @@
 ;;; Copied from https://github.com/damn/moon
 (ns my.dev
-  "Starts a dev loop using clojure.tools.namespace.repl/refresh in order to restart the app without
-  restarting the JVM.
+  "Starts a dev loop using clojure.tools.namespace.repl/refresh
+  in order to restart the app without restarting the JVM.
   Also starts an nrepl server which will keep up even between app crashes and restarts.
 
   In case of an error, the console prints `WAITING FOR RESTART` and
@@ -50,6 +50,11 @@
         (println "\n\n>>> RESTARTING <<<")
         (.notify obj)))
     (println "\n Application still running! Cannot restart.")))
+
+(defn restart-force!
+  []
+  (reset! thrown true)
+  (restart!))
 
 (declare ^:private refresh-error)
 

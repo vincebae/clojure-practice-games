@@ -5,5 +5,5 @@
 .nrepl-port
 .rebel_readline_history
 conjure-log-*.cljc
-hs_error*.log
+hs_err_*.log
 target/

@@ -1,4 +1,4 @@
-(ns my.game.drop
+(ns my.game.drop-gdx
   (:import [com.badlogic.gdx
             ApplicationListener
             Files$FileType
@@ -16,13 +16,15 @@
            [com.badlogic.gdx.utils ScreenUtils]
            [com.badlogic.gdx.utils.viewport FitViewport]))
 
+(defonce state (atom {}))
+
 (def f float)
 (def f0 (f 0))
 (def f1 (f 1))
 
 (defn default-config []
   (doto (Lwjgl3ApplicationConfiguration.)
-    (.setTitle "Drop")
+    (.setTitle "LibGdx Drop")
     (.useVsync true)
     (.setForegroundFPS (-> (Lwjgl3ApplicationConfiguration/getDisplayMode)
                            (.-refreshRate)
@@ -67,8 +69,6 @@
                 (cond
                   (.isKeyPressed Gdx/input Input$Keys/RIGHT) (.translateX @bucket-sprite delta-dist)
                   (.isKeyPressed Gdx/input Input$Keys/LEFT) (.translateX @bucket-sprite (- delta-dist))
-                  (.isKeyPressed Gdx/input Input$Keys/UP) (.translateY @bucket-sprite delta-dist)
-                  (.isKeyPressed Gdx/input Input$Keys/DOWN) (.translateY @bucket-sprite (- delta-dist))
                   (.isTouched Gdx/input) (do (.set @touch-pos (.getX Gdx/input) (.getY Gdx/input))
                                              (.unproject @viewport @touch-pos)
                                              (.setCenterX @bucket-sprite (.-x @touch-pos))))))
@@ -170,16 +170,22 @@
           (.update @viewport width height true))
 
         (render [_]
-          (input)
-          (logic)
-          (draw))
+         ; (println "FPS:" (.getFramesPerSecond Gdx/graphics))
+         (when (:exit? @state)
+           (println "Shutting down application...")
+           (.exit Gdx/app))
+
+         (input)
+         (logic)
+         (draw))
 
         (pause [_])
         (resume [_])
         (dispose [_]
-          ;; Dispose resources
-          (doseq [res [@background @bucket @drop @drop-sound @music @batch]]
-           (when res (.dispose res))))))))
+          (reset! state {}))))))
 
 (defn start-game []
   (Lwjgl3Application. (create-listener) (default-config)))
+
+(defn exit-game [] (swap! state assoc :exit? true))
+
