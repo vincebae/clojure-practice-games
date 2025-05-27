@@ -29,6 +29,7 @@
     (.setForegroundFPS (-> (Lwjgl3ApplicationConfiguration/getDisplayMode)
                            (.-refreshRate)
                            (inc)))
+    (.setForegroundFPS 1000)
     (.setWindowedMode 800 500)
     (.setWindowIcon Files$FileType/Internal
                     (into-array String ["favicon-32x32.png" "favicon-16x16.png"]))))
@@ -170,14 +171,14 @@
           (.update @viewport width height true))
 
         (render [_]
-         ; (println "FPS:" (.getFramesPerSecond Gdx/graphics))
-         (when (:exit? @state)
-           (println "Shutting down application...")
-           (.exit Gdx/app))
+          (println "FPS:" (.getFramesPerSecond Gdx/graphics))
+          (when (:exit? @state)
+            (println "Shutting down application...")
+            (.exit Gdx/app))
 
-         (input)
-         (logic)
-         (draw))
+          (input)
+          (logic)
+          (draw))
 
         (pause [_])
         (resume [_])

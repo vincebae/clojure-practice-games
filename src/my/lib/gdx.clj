@@ -2,14 +2,18 @@
   (:import
    [com.badlogic.gdx Gdx]
    [com.badlogic.gdx.graphics Texture]
+   [com.badlogic.gdx.graphics Color]
    [com.badlogic.gdx.graphics.g2d BitmapFont Sprite SpriteBatch]
-   [com.badlogic.gdx.math Rectangle Vector2]))
+   [com.badlogic.gdx.math MathUtils Rectangle Vector2]
+   [com.badlogic.gdx.utils ScreenUtils]))
+
+(def f float)
 
 (defn bitmap-font
   [{:keys [color scale]}]
   (let [font (BitmapFont.)]
     (when color (.setColor font color))
-    (when scale (.setScale (.getData font) scale))
+    (when scale (.setScale (.getData font) (f scale)))
     font))
 
 (defn center-x
@@ -22,20 +26,18 @@
   [cy {:keys [h]}]
   (- cy (/ h 2)))
 
+(defn clear
+  ([] (clear Color/BLACK))
+  ([color] (ScreenUtils/clear color)))
+
+(defn random
+  [min max]
+  (MathUtils/random (f min) (f max)))
+
 (defn rectangle
   ([{:keys [x y w h]}] (rectangle x y w h))
   ([x y w h]
-   (let [rect (Rectangle.)]
-     (.set rect x y w h)
-     rect)))
-
-(defn sprite
-  [texture & {:keys [x y w h]}]
-  (let [s (Sprite. texture)]
-    (.setSize s w h)
-    (when x (.setX s x))
-    (when y (.setY s y))
-    s))
+   (Rectangle. (f x) (f y) (f w) (f h))))
 
 (defn sound
   [file & {:keys [loop? play? volume]}]
@@ -46,9 +48,17 @@
     (when play? (.play s))
     s))
 
-(defn texture
-  [filename]
-  (Texture. filename))
+(defn sprite
+  [texture & {:keys [x y w h]}]
+  (let [s (Sprite. texture)]
+    (.setSize s w h)
+    (when x (.setX s x))
+    (when y (.setY s y))
+    s))
+
+(defn sprite-batch [] (SpriteBatch.))
+
+(defn texture [filename] (Texture. filename))
 
 (defn vector2 [x y] (Vector2. x y))
 

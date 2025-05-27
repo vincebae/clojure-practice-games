@@ -8,7 +8,9 @@
 (load-file "src/my/app.clj")
 my.app/game
 (my.app/exit-game)
-(my.app/game-state)
 (my.app/change-game "drop")
 (my.app/change-game "drop-gdx")
+
+(load-file "src/my/lib/state.clj")
+my.lib.state/state
 
