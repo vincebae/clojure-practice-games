@@ -1,36 +1,41 @@
 (ns my.lib.utils
-  (:require [my.lib.engine :refer [gs gr]]))
+  (:require [my.lib.engine :refer [gs gr]])
+  (:gen-class))
 
 (def f float)
 
 (defn calc-entity-pos
   "Calculate entity position based on the velocity and boundaries"
-  [{:keys [body velocity] :as entity}
-   delta-time
-   {:keys [x-lower x-upper y-lower y-upper]}]
+  ([entity delta-time] (calc-entity-pos entity delta-time {}))
+  ([{:keys [body velocity] :as entity}
+    delta-time
+    {:keys [x-lower x-upper y-lower y-upper]}]
 
-  (letfn
-   [(calc-pos
-      [{:keys [delta pos vel lower upper]}]
-      (cond-> (+ pos (* vel delta))
-        lower (max lower)
-        upper (min upper)))]
+   (letfn
+    [(calc-pos
+       [{:keys [pos vel lower upper]}]
+       (cond-> (+ pos (* vel delta-time))
+         lower (max lower)
+         upper (min upper)))]
 
     (-> entity
         (assoc-in [:body :x]
-                  (calc-pos {:delta delta-time
-                             :pos (:x body)
+                  (calc-pos {:pos (:x body)
                              :vel (:x velocity)
                              :lower x-lower
                              :upper (some-> x-upper
                                             (- (:w body)))}))
         (assoc-in [:body :y]
-                  (calc-pos {:delta delta-time
-                             :pos (:y body)
+                  (calc-pos {:pos (:y body)
                              :vel (:y velocity)
                              :lower y-lower
                              :upper (some-> y-upper
-                                            (- (:h body)))})))))
+                                            (- (:h body)))}))))))
+
+(defn calc-entities-pos
+  ([entities delta-time] (calc-entities-pos entities delta-time {}))
+  ([entities delta-time boundary]
+   (mapv #(calc-entity-pos % delta-time boundary) entities)))
 
 (defn draw-texture
   [batch texture-key {:keys [x y w h]}]

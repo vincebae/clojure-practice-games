@@ -6,7 +6,8 @@
    [com.badlogic.gdx.backends.lwjgl3
     Lwjgl3Application
     Lwjgl3ApplicationConfiguration]
-   [com.badlogic.gdx.utils.viewport FitViewport]))
+   [com.badlogic.gdx.utils.viewport FitViewport])
+  (:gen-class))
 
 (defonce state (atom {}))
 (defonce resources (atom {}))
@@ -194,9 +195,9 @@
     ; (.setForegroundFPS (-> (Lwjgl3ApplicationConfiguration/getDisplayMode)
     ;                        (.-refreshRate)
     ;                        (inc)))
-    (.setForegroundFPS 1000)
-    (.setWindowIcon Files$FileType/Internal
-                    (into-array String ["favicon-32x32.png" "favicon-16x16.png"]))))
+    (.setForegroundFPS 1000)))
+    ; (.setWindowIcon Files$FileType/Internal
+    ;                 (into-array String ["favicon-32x32.png" "favicon-16x16.png"]))))
 
 (defn start
   [config]

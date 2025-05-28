@@ -6,7 +6,8 @@
    [my.lib.gdx :as g])
   (:import
    [com.badlogic.gdx Input$Keys]
-   [com.badlogic.gdx.graphics Color]))
+   [com.badlogic.gdx.graphics Color])
+  (:gen-class))
 
 (def ^:private ^:const bucket-width 100)
 (def ^:private ^:const bucket-height 100)
@@ -18,13 +19,13 @@
 
 (defn- create-game
   []
-  {:resources {:texture {:background (g/texture "background.png")
-                         :bucket (g/texture "bucket.png")
-                         :drop (g/texture "drop.png")}
+  {:resources {:texture {:background (g/texture "assets/background.png")
+                         :bucket (g/texture "assets/bucket.png")
+                         :drop (g/texture "assets/drop.png")}
 
-               :sound {:bgm (g/sound "music.mp3"
+               :sound {:bgm (g/sound "assets/music.mp3"
                                      {:loop? true :volumn 0.5 :play? true})
-                       :drop (g/sound "drop.mp3")}
+                       :drop (g/sound "assets/drop.mp3")}
 
                :font {:score (g/bitmap-font {:color Color/YELLOW :scale 2})}}
 
@@ -53,12 +54,12 @@
         Input$Keys/LEFT [:move-end :left]
         nil))]
 
-    (case mode
-      :key-down (key-down (:keycode data))
-      :key-up (key-up (:keycode data))
-      :touch-down [:touch (:x data) (:y data)]
-      :touch-dragged [:touch (:x data) (:y data)]
-      nil)))
+   (case mode
+     :key-down (key-down (:keycode data))
+     :key-up (key-up (:keycode data))
+     :touch-down [:touch (:x data) (:y data)]
+     :touch-dragged [:touch (:x data) (:y data)]
+     nil)))
 
 (defn- handle-events
   [state _]
@@ -77,10 +78,6 @@
            (filter #(not= direction %))
            (assoc state :move-stack)))
 
-    (set-bucket-x
-      [state x]
-      (assoc-in state [:entities :bucket :body :x] x))
-
     (handle-event
       [state event]
       (match event
@@ -88,7 +85,7 @@
         [:move-end direction] (remove-move-stack state direction)
         [:touch x _] (let [bucket-body (get-in state [:entities :bucket :body])
                            centered-x (g/center-x x bucket-body)]
-                       (set-bucket-x state centered-x))
+                       (assoc-in state [:entities :bucket :body :x] centered-x))
         :else state))
 
     (process-move-stack
@@ -100,41 +97,50 @@
                        0)]
         (assoc-in state [:entities :bucket :velocity :x] velocity)))]
 
-    (-> (reduce handle-event state (:events state))
-        (process-move-stack)
-        (assoc :events []))))
+   (-> (reduce handle-event state (:events state))
+       (process-move-stack)
+       (assoc :events []))))
 
 (defn- update-entities-pos
   [state {:keys [delta-time world-width]}]
   (let [bucket (get-in state [:entities :bucket])
-        new-bucket (u/calc-entity-pos bucket
-                                      delta-time
-                                      {:x-lower 0
-                                       :x-upper world-width})
+        new-bucket (u/calc-entity-pos bucket delta-time
+                                      {:x-lower 0 :x-upper world-width})
         drops (get-in state [:entities :drops])
-        new-drops (mapv #(u/calc-entity-pos % delta-time {}) drops)]
+        new-drops (u/calc-entities-pos drops delta-time)]
     (-> state
         (assoc-in [:entities :bucket] new-bucket)
         (assoc-in [:entities :drops] new-drops))))
 
 (defn- update-timers
   [state {:keys [delta-time]}]
-  (let [drop-timer (:drop-timer state)
-        updated-drop-timer (+ drop-timer delta-time)
-        new-drop-timer (if (< updated-drop-timer 1) updated-drop-timer 0)]
-    (assoc state :drop-timer new-drop-timer)))
+  (assoc state
+         :drop-timer
+         (as-> (:drop-timer state) timer
+           (+ timer delta-time)
+           (if (< timer 1) timer 0))))
 
 (defn- process-drops
   [state {:keys [world-width world-height]}]
   (let [bucket-body (get-in state [:entities :bucket :body])
         bucket-rect (g/rectangle bucket-body)]
     (letfn
-     [(categorize-drop
-        [{:keys [body]}]
-        (cond
-          (.overlaps bucket-rect (g/rectangle body)) :collided
-          (neg? (+ (:y body) (:h body))) :out-of-bound
-          :else :remaining))
+     [(process-drops-helper
+        [drops score]
+        (reduce
+         (fn [{:keys [score drops] :as acc}
+              {:keys [body] :as drop}]
+           (cond
+             (.overlaps bucket-rect (g/rectangle body))
+             {:collided? true :score (inc score) :drops drops}
+
+             (neg? (+ (:y body) (:h body)))
+             (assoc acc :score (dec score))
+
+             :else
+             (assoc acc :drops (conj drops drop))))
+         {:collided? false :score score :drops []}
+         drops))
 
       (new-droplet
         []
@@ -145,18 +151,16 @@
          :velocity {:x 0 :y drop-speed}
          :graphics {:texture :drop}})]
 
-      (let [drops (get-in state [:entities :drops])
-            categorized (group-by categorize-drop drops)
-            {:keys [remaining collided out-of-bound]} categorized
-            new-drops (if (zero? (:drop-timer state))
-                        (conj (vec remaining) (new-droplet))
-                        (vec remaining))
-            score (:score state)
-            new-score (+ score (- (count collided) (count out-of-bound)))]
-        (-> state
-            (assoc-in [:entities :drops] new-drops)
-            (assoc :collided? (some? collided))
-            (assoc :score new-score))))))
+     (let [drops (get-in state [:entities :drops])
+           score (:score state)
+           result (process-drops-helper drops score)
+           drop-timer (:drop-timer state)
+           new-drops (cond-> (:drops result)
+                       (zero? drop-timer) (conj (new-droplet)))]
+       (-> state
+           (assoc-in [:entities :drops] new-drops)
+           (assoc :collided? (:collided? result))
+           (assoc :score (:score result)))))))
 
 (defn- update-state
   [state data]

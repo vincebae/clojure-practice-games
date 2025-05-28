@@ -14,7 +14,8 @@
   (:require [clojure.java.io :as io]
             [nrepl.server :as nrepl]
             [clojure.tools.namespace.repl :refer [disable-reload! refresh]]
-            [clj-commons.pretty.repl :as p]))
+            [clj-commons.pretty.repl :as p])
+  (:gen-class))
 
 (disable-reload!) ; keep same connection/nrepl-server up throughout refreshs
 
@@ -84,7 +85,7 @@
 
 (declare ^:private nrepl-server)
 
-(defn -main [& _args] 
+(defn -main [& _args]
   (.bindRoot #'nrepl-server (nrepl/start-server))
   (save-port-file! nrepl-server)
   (println "Started nrepl server on port" (:port nrepl-server))

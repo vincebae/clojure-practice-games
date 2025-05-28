@@ -5,7 +5,8 @@
    [com.badlogic.gdx.graphics Color]
    [com.badlogic.gdx.graphics.g2d BitmapFont Sprite SpriteBatch]
    [com.badlogic.gdx.math MathUtils Rectangle Vector2]
-   [com.badlogic.gdx.utils ScreenUtils]))
+   [com.badlogic.gdx.utils ScreenUtils])
+  (:gen-class))
 
 (def f float)
 

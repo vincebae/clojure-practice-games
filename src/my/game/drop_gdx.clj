@@ -14,7 +14,8 @@
             SpriteBatch]
            [com.badlogic.gdx.math MathUtils Rectangle Vector2]
            [com.badlogic.gdx.utils ScreenUtils]
-           [com.badlogic.gdx.utils.viewport FitViewport]))
+           [com.badlogic.gdx.utils.viewport FitViewport])
+  (:gen-class))
 
 (defonce state (atom {}))
 
@@ -30,9 +31,9 @@
                            (.-refreshRate)
                            (inc)))
     (.setForegroundFPS 1000)
-    (.setWindowedMode 800 500)
-    (.setWindowIcon Files$FileType/Internal
-                    (into-array String ["favicon-32x32.png" "favicon-16x16.png"]))))
+    (.setWindowedMode 800 500)))
+    ; (.setWindowIcon Files$FileType/Internal
+    ;                 (into-array String ["favicon-32x32.png" "favicon-16x16.png"]))))
 
 (defn create-listener []
   (let [background (atom nil)

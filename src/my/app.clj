@@ -1,4 +1,5 @@
-(ns my.app)
+(ns my.app
+  (:gen-class))
 
 (defonce game (atom nil))
 
