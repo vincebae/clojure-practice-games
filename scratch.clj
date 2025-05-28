@@ -11,6 +11,7 @@ my.app/game
 (my.app/change-game "drop")
 (my.app/change-game "drop-gdx")
 
-(load-file "src/my/lib/state.clj")
-my.lib.state/state
+(load-file "src/my/lib/engine.clj")
+my.lib.engine/state
+my.lib.engine/resources
 
