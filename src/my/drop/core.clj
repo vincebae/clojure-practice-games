@@ -1,9 +1,9 @@
-(ns my.game.drop-my
+(ns my.drop.core
   (:require
    [clojure.core.match :refer [match]]
-   [my.lib.engine :as engine]
-   [my.lib.utils :as u]
-   [my.lib.gdx :as g])
+   [my.drop.engine :as engine]
+   [my.drop.utils :as u]
+   [my.drop.gdx :as g])
   (:import
    [com.badlogic.gdx Input$Keys]
    [com.badlogic.gdx.graphics Color])

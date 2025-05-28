@@ -1,4 +1,4 @@
-(ns my.game.drop-gdx
+(ns my.drop-gdx.core
   (:import [com.badlogic.gdx
             ApplicationListener
             Files$FileType

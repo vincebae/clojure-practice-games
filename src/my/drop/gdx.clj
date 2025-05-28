@@ -1,4 +1,4 @@
-(ns my.lib.gdx
+(ns my.drop.gdx
   (:import
    [com.badlogic.gdx Gdx]
    [com.badlogic.gdx.graphics Texture]

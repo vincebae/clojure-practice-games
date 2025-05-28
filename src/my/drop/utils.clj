@@ -1,5 +1,5 @@
-(ns my.lib.utils
-  (:require [my.lib.engine :refer [gs gr]])
+(ns my.drop.utils
+  (:require [my.drop.engine :refer [gs gr]])
   (:gen-class))
 
 (def f float)

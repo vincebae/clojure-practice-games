@@ -6,9 +6,9 @@
 (defn choose-game
   [name]
   (case name
-    "drop" 'my.game.drop-my
-    "drop-gdx" 'my.game.drop-gdx
-    'my.game.drop-my))
+    "drop" 'my.drop.core
+    "drop-gdx" 'my.drop-gdx.core
+    'my.drop.core))
 
 (defn start-game
   [namespace]
