@@ -30,6 +30,7 @@
 
    :state {:score 0
            :drop-timer 0
+           :move-stack '()
            :entities {:bucket {:body {:x 0 :y 0 :w bucket-width :h bucket-height}
                                :velocity {:x 0 :y 0}
                                :graphics {:texture :bucket}}
@@ -41,14 +42,15 @@
    [(key-down
       [keycode]
       (condp = keycode
-        Input$Keys/RIGHT [:move-right-start]
-        Input$Keys/LEFT [:move-left-start]
+        Input$Keys/RIGHT [:move-start :right]
+        Input$Keys/LEFT [:move-start :left]
         nil))
+
     (key-up
       [keycode]
       (condp = keycode
-        Input$Keys/RIGHT [:move-right-end]
-        Input$Keys/LEFT [:move-left-end]
+        Input$Keys/RIGHT [:move-end :right]
+        Input$Keys/LEFT [:move-end :left]
         nil))]
 
     (case mode
@@ -61,9 +63,19 @@
 (defn- handle-events
   [state _]
   (letfn
-   [(set-bucket-velocity-x
-      [state velocity]
-      (assoc-in state [:entities :bucket :velocity :x] velocity))
+   [(add-move-stack
+      [state direction]
+      (let [move-stack (:move-stack state)
+            new-move-stack (if (some #{direction} move-stack)
+                             move-stack
+                             (conj move-stack direction))]
+        (assoc state :move-stack new-move-stack)))
+
+    (remove-move-stack
+      [state direction]
+      (->> (:move-stack state)
+           (filter #(not= direction %))
+           (assoc state :move-stack)))
 
     (set-bucket-x
       [state x]
@@ -72,15 +84,24 @@
     (handle-event
       [state event]
       (match event
-        [:move-right-start] (set-bucket-velocity-x state bucket-speed)
-        [:move-left-start] (set-bucket-velocity-x state (- bucket-speed))
-        [:move-right-end] (set-bucket-velocity-x state 0)
-        [:move-left-end] (set-bucket-velocity-x state 0)
+        [:move-start direction] (add-move-stack state direction)
+        [:move-end direction] (remove-move-stack state direction)
         [:touch x _] (let [bucket-body (get-in state [:entities :bucket :body])
                            centered-x (g/center-x x bucket-body)]
                        (set-bucket-x state centered-x))
-        :else nil))]
+        :else state))
+
+    (process-move-stack
+      [state]
+      (let [direction (first (:move-stack state))
+            velocity (case direction
+                       :right bucket-speed
+                       :left (- bucket-speed)
+                       0)]
+        (assoc-in state [:entities :bucket :velocity :x] velocity)))]
+
     (-> (reduce handle-event state (:events state))
+        (process-move-stack)
         (assoc :events []))))
 
 (defn- update-entities-pos
@@ -88,8 +109,8 @@
   (let [bucket (get-in state [:entities :bucket])
         new-bucket (u/calc-entity-pos bucket
                                       delta-time
-                                      {:x-lower-bound 0
-                                       :x-upper-bound world-width})
+                                      {:x-lower 0
+                                       :x-upper world-width})
         drops (get-in state [:entities :drops])
         new-drops (mapv #(u/calc-entity-pos % delta-time {}) drops)]
     (-> state

@@ -3,32 +3,34 @@
 
 (def f float)
 
-(defn- calc-pos
-  [{:keys [delta pos vel lower-bound upper-bound]}]
-  (cond-> (+ pos (* vel delta))
-    lower-bound (max lower-bound)
-    upper-bound (min upper-bound)))
-
 (defn calc-entity-pos
   "Calculate entity position based on the velocity and boundaries"
   [{:keys [body velocity] :as entity}
    delta-time
-   {:keys [x-lower-bound x-upper-bound y-lower-bound y-upper-bound]}]
-  (-> entity
-      (assoc-in [:body :x]
-                (calc-pos {:delta delta-time
-                           :pos (:x body)
-                           :vel (:x velocity)
-                           :lower-bound x-lower-bound
-                           :upper-bound (some-> x-upper-bound
-                                                (- (:w body)))}))
-      (assoc-in [:body :y]
-                (calc-pos {:delta delta-time
-                           :pos (:y body)
-                           :vel (:y velocity)
-                           :lower-bound y-lower-bound
-                           :upper-bound (some-> y-upper-bound
-                                                (- (:h body)))}))))
+   {:keys [x-lower x-upper y-lower y-upper]}]
+
+  (letfn
+   [(calc-pos
+      [{:keys [delta pos vel lower upper]}]
+      (cond-> (+ pos (* vel delta))
+        lower (max lower)
+        upper (min upper)))]
+
+    (-> entity
+        (assoc-in [:body :x]
+                  (calc-pos {:delta delta-time
+                             :pos (:x body)
+                             :vel (:x velocity)
+                             :lower x-lower
+                             :upper (some-> x-upper
+                                            (- (:w body)))}))
+        (assoc-in [:body :y]
+                  (calc-pos {:delta delta-time
+                             :pos (:y body)
+                             :vel (:y velocity)
+                             :lower y-lower
+                             :upper (some-> y-upper
+                                            (- (:h body)))})))))
 
 (defn draw-texture
   [batch texture-key {:keys [x y w h]}]
@@ -43,8 +45,9 @@
 
 (defn draw-entities
   [batch entities-key]
-  (let [size (count (gs entities-key))]
-    (run! #(draw-entity batch (conj (vec entities-key) %)) (range size))))
+  (let [size (count (gs entities-key))
+        keys (map #(conj (vec entities-key) %) (range size))]
+    (run! #(draw-entity batch %) keys)))
 
 (defn draw-text
   [batch font-key {:keys [text x y]}]
