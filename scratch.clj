@@ -8,10 +8,8 @@
 (load-file "src/my/app.clj")
 my.app/game
 (my.app/exit-game)
-(my.app/change-game "drop")
-(my.app/change-game "drop-gdx")
 
-(load-file "src/my/lib/engine.clj")
-my.lib.engine/state
-my.lib.engine/resources
+(load-file "src/my/snake/engine.clj")
+my.snake.engine/state
+my.snake.engine/resources
 

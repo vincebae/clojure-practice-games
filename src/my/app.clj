@@ -8,7 +8,8 @@
   (case name
     "drop" 'my.drop.core
     "drop-gdx" 'my.drop-gdx.core
-    'my.drop.core))
+    "snake" 'my.snake.core
+    'my.snake.core))
 
 (defn start-game
   [namespace]

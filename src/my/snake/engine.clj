@@ -1,6 +1,6 @@
-(ns my.drop.engine
+(ns my.snake.engine
   "Core game engine using LibGdx."
-  (:require [my.drop.gdx :as g])
+  (:require [my.snake.gdx :as g])
   (:import
    [com.badlogic.gdx ApplicationListener Files$FileType Gdx InputProcessor]
    [com.badlogic.gdx.backends.lwjgl3
