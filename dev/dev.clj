@@ -53,7 +53,7 @@
     (recur)))
 
 (defn- start-nrepl-server!
-  "Start nrepl server write the port to .nrepl-port file"
+  "Start nrepl server and write the port to .nrepl-port file"
   []
   (let [server (nrepl/start-server)
         port (:port server)
