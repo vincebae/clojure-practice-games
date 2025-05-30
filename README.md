@@ -41,8 +41,8 @@ $ bb dev
   - `bb nrepl` can also be used to start a nREPL client
 - The game data, which may include config, resource, state and etc, will be stored to `dev/game` atom
   defined in `dev/dev.clj` file.
-- When game window is closed, dev loop will automatically tries to reload all the changes restart the game
-- This can be triggered from REPL by evaluating `(dev/exit-game)`
+- When game window is closed, dev loop will automatically tries to reload all the changes and restart the game
+- This can be triggered from REPL by evaluating `(dev/exit-game!)`
 - When there is any exception, game will print out the error and wait to be restarted
 - Once changes are made, game can be restarted from REPL by evaluating `(dev/restart!)`
 
