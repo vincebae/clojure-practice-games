@@ -1,7 +1,7 @@
 (ns my.snake.core
   (:require
    [clojure.core.match :refer [match]]
-   [my.snake.engine :as engine]
+   [my.snake.engine :refer [start exit]]
    [my.snake.utils :as u]
    [my.snake.gdx :as g])
   (:import
@@ -274,8 +274,8 @@
 
 (defn start-game
   [game]
-  (engine/start game))
+  (start game))
 
 (defn exit-game
   [game]
-  (engine/exit game))
+  (exit game))
