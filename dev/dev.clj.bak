@@ -1,7 +1,6 @@
-;;; Initially copied from https://github.com/damn/moon and modified.
+;;; Copied from https://github.com/damn/moon and modified.
 (ns dev
   (:require [clj-commons.pretty.repl :as p]
-            [clojure.core.async :refer [<! >!! chan go poll!]]
             [clojure.java.io :as io]
             [clojure.tools.namespace.repl :refer [disable-reload! refresh]]
             [my.app]
@@ -12,8 +11,9 @@
 
 (defonce nrepl-server (atom nil))
 (defonce game (atom nil))
-
-(def dev-chan (chan))
+(defonce ^:private thrown (atom false))
+(defonce ^:private ^Object obj (Object.))
+(defonce ^:private refresh-error (atom nil))
 
 (defn- init-and-start-game!
   []
@@ -25,16 +25,24 @@
 (defn- handle-throwable! [t]
   (binding [*print-level* 3]
     (p/pretty-pst t 24))
-  ;; Block thread until taken by `restart!`
-  (>!! dev-chan :err))
+  (reset! thrown t))
+
+(defn- wait! []
+  (locking obj
+    (Thread/sleep 10)
+    (println "\n\n>>> WAITING FOR RESTART <<<")
+    (.wait obj)))
 
 (defn restart!
+  "Calls refresh on all namespaces with file changes and restarts the application."
   []
-  (go (case (poll! dev-chan)
-        :err (do (println "\n=== RESTARTING ===")
-                     ;; clearing channel message to unblock dev loop.
-                 (<! dev-chan))
-        (println "\n Application sill running! Cannot restart."))))
+  (if @thrown
+    (do
+      (reset! thrown false)
+      (locking obj
+        (println "\n\n>>> RESTARTING <<<")
+        (.notify obj)))
+    (println "\n Application still running! Cannot restart.")))
 
 (defn- start-dev-loop!
   []
@@ -42,8 +50,10 @@
        (catch Throwable t
          (handle-throwable! t)))
   (loop []
-    ;; called only channel is cleared
-    (handle-throwable! (refresh :after 'dev/start-dev-loop!))
+    (when-not @thrown
+      (reset! refresh-error (refresh :after 'dev/start-dev-loop!))
+      (handle-throwable! @refresh-error))
+    (wait!)
     (recur)))
 
 (defn- start-nrepl-server!
