@@ -19,10 +19,17 @@
 (def ^:private ^:const pillar-box 16) ;; (/ (- screen-width grid-width) 2)
 (def ^:private ^:const letter-box 12) ;; (/ (- screen-height grid-height) 2)
 
-(def ^:private ^:const move-timer-limit 0.15)
-(def ^:private ^:const grow-timer-limit 1)
 (def ^:private ^:const start-col 1)
 (def ^:private ^:const start-row 12)
+
+(def all-grids (vec (for [c (range cols) r (range rows)] [c r])))
+
+(defn- random-food-pos
+  [occupied]
+  (let [occupied-set (set occupied)
+        empties (filterv #(not (occupied-set %)) all-grids)
+        choice (rand-int (count empties))]
+    (get empties choice)))
 
 (defn- grid-coord
   "returns the coordinate of top left corner of the given grid in vector,
@@ -31,21 +38,7 @@
   [(+ (* col grid-size) pillar-box)
    (+ (* row grid-size) letter-box)])
 
-(defn- initial-state
-  []
-  (let [[start-x start-y] (grid-coord start-col start-row)]
-    {:timers {:move 0 :grow 0}
-     :game-over? false
-     :grow? false
-     :move? false
-     :entities {:head {:pos {:col start-col :row start-row}
-                       :direction :right
-                       :body {:x start-x :y start-y
-                              :w grid-size :h grid-size}
-                       :graphics {:texture :head}}
-                :bodies []}}))
-
-(defn- create-game
+(defn- initial-resources
   []
   (letfn
    [(create-background-texture
@@ -61,21 +54,34 @@
           (.dispose background)
           (.dispose white)
           (.dispose gray)
-          texture)))]
+          texture)))
 
-    {:resources {:texture {:background (create-background-texture)
-                           :head (g/color-texture grid-size
-                                                  grid-size
-                                                  Color/NAVY)
-                           :body (g/color-texture grid-size
-                                                  grid-size
-                                                  Color/OLIVE)}
-                 :font {:game-over (g/bitmap-font {:color Color/RED
-                                                   :scale 4})
-                        :press-enter (g/bitmap-font {:color Color/BLUE
-                                                     :scale 2})}}
+    (grid-texture [color] (g/color-texture grid-size grid-size color))]
 
-     :state (initial-state)}))
+   {:textures {:background (create-background-texture)
+               :head (grid-texture Color/NAVY)
+               :body (grid-texture Color/OLIVE)
+               :food (grid-texture Color/MAROON)}
+    :fonts {:game-over (g/bitmap-font {:color Color/RED :scale 4})
+            :press-enter (g/bitmap-font {:color Color/BLUE :scale 2})}}))
+
+(defn- initial-state
+  []
+  (let [[food-col food-row] (random-food-pos [[start-col start-row]])]
+
+    {:timers {:move {:value 0 :limit 0.1}}
+     :conditions {:game-over? false
+                  :grow? false
+                  :move? false
+                  :new-food? false}
+     :entities {:head {:col start-col
+                       :row start-row
+                       :direction :right
+                       :texture :head}
+                :bodies []
+                :food {:col food-col
+                       :row food-row
+                       :texture :food}}}))
 
 (defn- process-input
   [mode data]
@@ -90,60 +96,67 @@
         Input$Keys/ENTER [:enter]
         nil))]
 
-    (case mode
-      :key-down (key-down (:keycode data))
-      nil)))
+   (case mode
+     :key-down (key-down (:keycode data))
+     nil)))
 
 (defn- handle-events
   [state _]
-  (let [game-over? (:game-over? state)]
+  (let [game-over? (get-in state [:conditions :game-over?])]
     (letfn
      [(handle-event
         [acc event]
         (if game-over?
-          (match event
-            [:enter] (initial-state)
-            :else acc)
-          (match event
-            [:move direction] (assoc-in acc
-                                        [:entities :head :direction]
-                                        direction)
-            :else acc)))]
+           (match event
+             [:enter] (initial-state)
+             :else acc)
+           (match event
 
-      (-> (reduce handle-event state (:events state))
-          (assoc :events [])))))
+             [:move direction] (assoc-in acc
+                                         [:entities :head :direction]
+                                         direction)
+             :else acc)))]
+
+     (-> (reduce handle-event state (:events state))
+         (assoc :events [])))))
 
 (defn- update-timers
   [state {:keys [delta-time]}]
   (letfn
    [(update-timer
-      [timer-key limit]
-      (as-> (get-in state timer-key) timer
-        (+ timer delta-time)
-        (if (> timer limit) 0 timer)))]
+      [timer-key]
+      (let [{:keys [value limit]} (get-in state timer-key)]
+        (as-> (+ value delta-time) v
+          (if (> v limit) 0 v))))]
 
-    (let [move-timer (update-timer [:timers :move] move-timer-limit)
-          grow-timer (update-timer [:timers :grow] grow-timer-limit)
-          move? (zero? move-timer)
-          grow? (or (:grow? state) (zero? grow-timer))]
+   (let [move-timer-value (update-timer [:timers :move])]
+     (-> state
+         (assoc-in [:timers :move :value] move-timer-value)
+         (assoc-in [:conditions :move?] (zero? move-timer-value))))))
+
+(defn- update-food
+  [state _]
+  (if (get-in state [:conditions :new-food?])
+    (let [head (get-in state [:entities :head])
+          bodies (get-in state [:entities :bodies])
+          occupied (->> (conj bodies head)
+                        (mapv #(vector (:col %) (:row %))))
+          [food-col food-row] (random-food-pos occupied)
+          new-food (-> (get-in state [:entities :food])
+                       (assoc :col food-col :row food-row))]
       (-> state
-          (assoc :timers {:move move-timer :grow grow-timer})
-          (assoc :move? move?)
-          (assoc :grow? grow?)))))
+          (assoc-in [:entities :food] new-food)
+          (assoc-in [:conditions :new-food?] false)))
+    state))
 
 (defn- move-entity
-  [{:keys [pos direction] :as entity}]
-  (let [{:keys [col row]} pos
-        [new-col new-row] (case direction
+  [{:keys [col row direction] :as entity}]
+  (let [[new-col new-row] (case direction
                             :right [(inc col) row]
                             :left [(dec col) row]
                             :up [col (inc row)]
-                            :down [col (dec row)])
-        [new-x new-y] (grid-coord new-col new-row)]
-    (-> entity
-        (assoc :pos {:col new-col :row new-row})
-        (assoc-in [:body :x] new-x)
-        (assoc-in [:body :y] new-y))))
+                            :down [col (dec row)])]
+    (assoc entity :col new-col :row new-row)))
 
 (defn- update-bodies
   [state _]
@@ -151,12 +164,12 @@
    [(grow-body
       []
       (let [bodies (get-in state [:entities :bodies])
-            new-body (-> (get-in state [:entities :head])
-                         (assoc-in [:graphics :texture] :body))
+            head (get-in state [:entities :head])
+            new-body (assoc head :texture :body)
             new-bodies (conj bodies new-body)]
         (-> state
             (assoc-in [:entities :bodies] new-bodies)
-            (assoc :grow? false))))
+            (assoc-in [:conditions :grow?] false))))
 
     (move-bodies
       []
@@ -174,17 +187,17 @@
                                                   (second %))))]
             (assoc-in state [:entities :bodies] new-new-bodies)))))]
 
-    (if (:move? state)
-      (if (:grow? state) (grow-body) (move-bodies))
-      state)))
+   (if (get-in state [:conditions :move?])
+     (if (get-in state [:conditions :grow?])
+       (grow-body)
+       (move-bodies))
+     state)))
 
 (defn- update-head
   [state _]
-  (if (:move? state)
+  (if (get-in state [:conditions :move?])
     (let [new-head (move-entity (get-in state [:entities :head]))]
-      (-> state
-          (assoc-in [:entities :head] new-head)
-          (assoc :move? false)))
+      (assoc-in state [:entities :head] new-head))
     state))
 
 (defn- check-collision
@@ -194,49 +207,75 @@
       [{c1 :col r1 :row} {c2 :col r2 :row}]
       (and (= c1 c2) (= r1 r2)))]
 
-    (let [{:keys [col row] :as head-pos} (get-in state [:entities :head :pos])
-          out-of-bound? (or (< row 0)
-                            (<= rows row)
-                            (< col 0)
-                            (<= cols col))
-          bump? (->> (get-in state [:entities :bodies])
-                     (mapv :pos)
-                     (some #(collided? head-pos %)))]
-
-      (if (or out-of-bound? bump?)
-        (assoc state :game-over? true)
-        state))))
+   (let [{:keys [col row] :as head} (get-in state [:entities :head])
+         out-of-bound? (or (< row 0)
+                           (<= rows row)
+                           (< col 0)
+                           (<= cols col))
+         bump? (->> (get-in state [:entities :bodies])
+                    (some #(collided? head %)))
+         food (get-in state [:entities :food])
+         eat? (collided? head food)
+         new-conditions (cond-> (:conditions state)
+                          (or out-of-bound? bump?) (assoc :game-over? true)
+                          eat? (assoc :grow? true :new-food? true))]
+     (assoc state :conditions new-conditions))))
 
 (defn- update-state
   [state data]
-  (if (:game-over? state)
+  (if (get-in state [:conditions :game-over?])
     (handle-events state data)
     (-> state
         (handle-events data)
         (update-timers data)
+        (update-food data)
         (update-bodies data)
         (update-head data)
         (check-collision data))))
 
 (defn- render
-  [state {:keys [batch]}]
-  (u/draw-texture batch [:texture :background] {:x 0 :y 0})
-  (u/draw-entities batch [:entities :bodies])
-  (u/draw-entity batch [:entities :head])
-  (when (:game-over? state)
-    (u/draw-text batch [:font :game-over] {:text "GAME OVER" :x 220 :y 400})
-    (u/draw-text batch [:font :press-enter] {:text "Press Enter to Restart"
-                                             :x 250 :y 320})))
+  [state {:keys [batch textures fonts]} & _]
+  (letfn
+   [(draw-entity
+      [batch {:keys [col row texture]}]
+      (let [[x y] (grid-coord col row)
+            tex (get textures texture)]
+        (u/draw-texture batch tex {:x x :y y :w grid-size :h grid-size})))
+
+    (draw-entities
+      [batch entities]
+      (run! #(draw-entity batch %) entities))]
+
+   (u/draw-texture batch (:background textures) {:x 0 :y 0})
+   (->> (:entities state)
+        (u/flatten-entities)
+        (draw-entities batch))
+
+   (when (get-in state [:conditions :game-over?])
+     (u/draw-text batch (:game-over fonts) {:text "GAME OVER" :x 220 :y 400})
+     (u/draw-text batch (:press-enter fonts) {:text "Press Enter to Restart"
+                                              :x 250 :y 320}))))
+
+(def config
+  {:title "Snake"
+   :w screen-width
+   :h screen-height
+   :update-fn update-state
+   :render-fn render
+   :process-input-fn process-input
+   :resources-fn initial-resources
+   :state-fn initial-state})
+
+(defn init-game
+  []
+  {:config config
+   :resources (atom nil)
+   :state (atom nil)})
 
 (defn start-game
-  []
-  (engine/start
-   {:title "Snake"
-    :w screen-width :h screen-height
-    :create-fn create-game
-    :update-fn update-state
-    :render-fn render
-    :process-input-fn process-input}))
+  [game]
+  (engine/start game))
 
-(defn exit-game [] (engine/exit))
-
+(defn exit-game
+  [game]
+  (engine/exit game))

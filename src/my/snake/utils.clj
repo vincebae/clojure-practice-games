@@ -1,5 +1,4 @@
 (ns my.snake.utils
-  (:require [my.snake.engine :refer [gs gr]])
   (:gen-class))
 
 (def f float)
@@ -38,30 +37,25 @@
    (mapv #(calc-entity-pos % delta-time boundary) entities)))
 
 (defn draw-texture
-  [batch texture-key {:keys [x y w h]}]
-  (let [texture (gr texture-key)]
-    (if (and w h)
-      (.draw batch texture (f x) (f y) (f w) (f h))
-      (.draw batch texture (f x) (f y)))))
-
-(defn draw-entity
-  [batch entity-key]
-  (let [{:keys [body graphics]} (gs entity-key)
-        texture-key [:texture (:texture graphics)]]
-    (draw-texture batch texture-key body)))
-
-(defn draw-entities
-  [batch entities-key]
-  (let [size (count (gs entities-key))
-        keys (map #(conj (vec entities-key) %) (range size))]
-    (run! #(draw-entity batch %) keys)))
+  [batch texture {:keys [x y w h]}]
+  (if (and w h)
+    (.draw batch texture (f x) (f y) (f w) (f h))
+    (.draw batch texture (f x) (f y))))
 
 (defn draw-text
-  [batch font-key {:keys [text x y]}]
-  (let [font (gr font-key)]
-    (.draw font batch text (f x) (f y))))
+  [batch font {:keys [text x y]}]
+  (.draw font batch text (f x) (f y)))
+
+(defn flatten-entities
+  [entities]
+  (->> (reduce
+        (fn [acc [_ v]] (if (vector? v) (into acc v) (conj acc v)))
+        []
+        entities)
+       (sort-by :draw-priority)
+       (vec)))
 
 (defn play-sound
-  [sound-key]
-  (.play (gr sound-key)))
+  [sound]
+  (.play sound))
 

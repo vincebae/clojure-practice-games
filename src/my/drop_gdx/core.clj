@@ -186,8 +186,10 @@
         (dispose [_]
           (reset! state {}))))))
 
-(defn start-game []
+(defn init-game [] {})
+
+(defn start-game [_]
   (Lwjgl3Application. (create-listener) (default-config)))
 
-(defn exit-game [] (swap! state assoc :exit? true))
+(defn exit-game [_] (swap! state assoc :exit? true))
 

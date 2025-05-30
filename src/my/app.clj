@@ -1,42 +1,31 @@
 (ns my.app
   (:gen-class))
 
-(defonce game (atom nil))
+(def default-game "snake")
 
-(defn choose-game
-  [name]
-  (case name
-    "drop" 'my.drop.core
-    "drop-gdx" 'my.drop-gdx.core
-    "snake" 'my.snake.core
-    'my.snake.core))
+(defn init-game
+  ([] (init-game default-game))
+  ([game-name]
+   (let [core-namespace (symbol (str "my." game-name ".core"))]
+     (require [core-namespace])
+     (let [init-fn (ns-resolve (find-ns core-namespace) (symbol "init-game"))]
+       (assoc (init-fn) :namespace core-namespace)))))
 
 (defn start-game
-  [namespace]
-  (require [namespace])
-  (apply (ns-resolve (find-ns namespace) (symbol "start-game")) []))
+  [game]
+  (let [core-namespace (:namespace game)]
+    (require [core-namespace])
+    (let [start-fn (ns-resolve (find-ns core-namespace) (symbol "start-game"))]
+      (start-fn game))))
 
 (defn exit-game
-  ([] (exit-game @game))
-  ([namespace]
-   (require [namespace])
-   (apply (ns-resolve (find-ns namespace) (symbol "exit-game")) [])))
-
-(defn change-game
-  [new-game]
-  (let [[old new] (reset-vals! game (choose-game new-game))]
-    (println "Changing game from" old "to" new)
-    (exit-game old)))
-
-(defn game-state
-  []
-  (require [@game])
-  (deref (ns-resolve (find-ns @game) (symbol "state"))))
+  [game]
+  (let [core-namespace (:namespace game)]
+    (require [core-namespace])
+    (let [exit-fn (ns-resolve (find-ns core-namespace) (symbol "exit-game"))]
+      (exit-fn game))))
 
 (defn -main [& _args]
-  (when-not @game
-    (let [g (choose-game (first _args))]
-      (println "Playing: " (str g))
-      (reset! game g)
-      (println "game:" game)))
-  (start-game @game))
+  (let [game-name (or (first _args) default-game)]
+    (println "Playing: " game-name)
+    (start-game (init-game game-name))))

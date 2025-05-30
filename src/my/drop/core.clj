@@ -186,15 +186,20 @@
                                      :x 10
                                      :y (- world-height 10)}))
 
-(defn start-game
+(defn init-game
   []
-  (engine/start
-   {:title "My Drop"
-    :w 800 :h 500
-    :create-fn create-game
-    :update-fn update-state
-    :render-fn render
-    :process-input-fn process-input}))
+  {:title "My Drop"
+   :w 800 :h 500
+   :create-fn create-game
+   :update-fn update-state
+   :render-fn render
+   :process-input-fn process-input})
 
-(defn exit-game [] (engine/exit))
+(defn start-game
+  [game]
+  (engine/start game))
+
+(defn exit-game
+  [_]
+  (engine/exit))
 
