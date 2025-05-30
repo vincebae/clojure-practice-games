@@ -98,7 +98,7 @@
 
    (case mode
      :key-down (key-down (:keycode data))
-      nil)))
+     nil)))
 
 (defn- handle-events
   [state _]
