@@ -1,5 +1,5 @@
 ;;; Copied from https://github.com/damn/moon and modified.
-(ns dev 
+(ns dev
   (:require [clj-commons.pretty.repl :as p]
             [clojure.java.io :as io]
             [clojure.tools.namespace.repl :refer [disable-reload! refresh]]

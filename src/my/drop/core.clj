@@ -54,12 +54,12 @@
         Input$Keys/LEFT [:move-end :left]
         nil))]
 
-   (case mode
-     :key-down (key-down (:keycode data))
-     :key-up (key-up (:keycode data))
-     :touch-down [:touch (:x data) (:y data)]
-     :touch-dragged [:touch (:x data) (:y data)]
-     nil)))
+    (case mode
+      :key-down (key-down (:keycode data))
+      :key-up (key-up (:keycode data))
+      :touch-down [:touch (:x data) (:y data)]
+      :touch-dragged [:touch (:x data) (:y data)]
+      nil)))
 
 (defn- handle-events
   [state _]
@@ -97,9 +97,9 @@
                        0)]
         (assoc-in state [:entities :bucket :velocity :x] velocity)))]
 
-   (-> (reduce handle-event state (:events state))
-       (process-move-stack)
-       (assoc :events []))))
+    (-> (reduce handle-event state (:events state))
+        (process-move-stack)
+        (assoc :events []))))
 
 (defn- update-entities-pos
   [state {:keys [delta-time world-width]}]
@@ -151,16 +151,16 @@
          :velocity {:x 0 :y drop-speed}
          :graphics {:texture :drop}})]
 
-     (let [drops (get-in state [:entities :drops])
-           score (:score state)
-           result (process-drops-helper drops score)
-           drop-timer (:drop-timer state)
-           new-drops (cond-> (:drops result)
-                       (zero? drop-timer) (conj (new-droplet)))]
-       (-> state
-           (assoc-in [:entities :drops] new-drops)
-           (assoc :collided? (:collided? result))
-           (assoc :score (:score result)))))))
+      (let [drops (get-in state [:entities :drops])
+            score (:score state)
+            result (process-drops-helper drops score)
+            drop-timer (:drop-timer state)
+            new-drops (cond-> (:drops result)
+                        (zero? drop-timer) (conj (new-droplet)))]
+        (-> state
+            (assoc-in [:entities :drops] new-drops)
+            (assoc :collided? (:collided? result))
+            (assoc :score (:score result)))))))
 
 (defn- update-state
   [state data]

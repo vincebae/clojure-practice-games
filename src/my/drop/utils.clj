@@ -18,19 +18,19 @@
          lower (max lower)
          upper (min upper)))]
 
-    (-> entity
-        (assoc-in [:body :x]
-                  (calc-pos {:pos (:x body)
-                             :vel (:x velocity)
-                             :lower x-lower
-                             :upper (some-> x-upper
-                                            (- (:w body)))}))
-        (assoc-in [:body :y]
-                  (calc-pos {:pos (:y body)
-                             :vel (:y velocity)
-                             :lower y-lower
-                             :upper (some-> y-upper
-                                            (- (:h body)))}))))))
+     (-> entity
+         (assoc-in [:body :x]
+                   (calc-pos {:pos (:x body)
+                              :vel (:x velocity)
+                              :lower x-lower
+                              :upper (some-> x-upper
+                                             (- (:w body)))}))
+         (assoc-in [:body :y]
+                   (calc-pos {:pos (:y body)
+                              :vel (:y velocity)
+                              :lower y-lower
+                              :upper (some-> y-upper
+                                             (- (:h body)))}))))))
 
 (defn calc-entities-pos
   ([entities delta-time] (calc-entities-pos entities delta-time {}))
