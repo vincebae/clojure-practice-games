@@ -5,14 +5,13 @@
          '[clojure.pprint :refer [pprint]]
          '[clojure.string :as s]
          '[clojure.test :as test]
-         '[dev :refer [game restart!]]
-         '[my.app :refer [exit-game]])
+         '[dev :refer [game exit-game! restart!]])
 
 game
 (:config @game)
 (deref (:state @game))
 (deref (:resources @game))
 (restart!)
-(exit-game @game)
+(exit-game!)
 
 

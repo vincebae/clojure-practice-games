@@ -38,10 +38,11 @@ $ bb dev
 - [nREPL server](https://github.com/nrepl/nrepl) will be started with `.nrepl-port` file created.
 - The default game (specified in `src/my/app.clj`) will be started.
 - Any nREPL client can be used to interact with running game.
+  - `bb nrepl` can also be used to start a nREPL client
 - The game data, which may include config, resource, state and etc, will be stored to `dev/game` atom
   defined in `dev/dev.clj` file.
 - When game window is closed, dev loop will automatically tries to reload all the changes restart the game
-- This can be triggered from REPL by evaluating `(my-app/exit-game @dev/game)`
+- This can be triggered from REPL by evaluating `(dev/exit-game)`
 - When there is any exception, game will print out the error and wait to be restarted
 - Once changes are made, game can be restarted from REPL by evaluating `(dev/restart!)`
 

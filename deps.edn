@@ -14,8 +14,9 @@
  :tasks
  {:requires ([babashka.process :refer [process]])
 
-  run-clj
+  run
   {:doc "Run main function through clj"
+   :override-builtin true
    :task (apply clojure "-M:prod" *command-line-args*)}
 
   dev

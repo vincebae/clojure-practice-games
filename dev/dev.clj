@@ -22,6 +22,12 @@
            (reset! game (eval (read-string "(my.app/init-game)")))
            ((eval (read-string "my.app/start-game")) @game))))
 
+(defn exit-game!
+  []
+  (eval `(do
+           (require 'my.app)
+           ((eval (read-string "my.app/exit-game")) @game))))
+
 (defn- handle-throwable! [t]
   (binding [*print-level* 3]
     (p/pretty-pst t 24))
