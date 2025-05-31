@@ -47,3 +47,16 @@ $ bb dev
 - Once changes are made, game can be restarted from REPL by evaluating `(dev/restart!)`
 
 `user.clj` in the top level directory contains various useful forms for this process.
+
+## Things to practice
+
+In no particular order
+- Pausing
+- Menu
+- Animation
+- Flappy Bird
+- Alcanoid
+- Space Invader
+- Doodle Jump
+- Minesweeper
+- Black Jack

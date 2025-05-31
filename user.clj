@@ -7,7 +7,7 @@
          '[clojure.string :as s]
          '[clojure.test :as test]
          '[dev :refer [game exit-game! restart!]]
-         '[my.snake.core :refer [clear-dev-chan]])
+         '[my.snake.core :refer [clear-dev-chan poll-dev-chan]])
 
 game
 (:config @game)
@@ -16,6 +16,7 @@ game
 (restart!)
 (exit-game!)
 (load-file "src/my/snake/core.clj")
+(poll-dev-chan)
 (clear-dev-chan)
 
 

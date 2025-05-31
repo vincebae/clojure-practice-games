@@ -27,7 +27,9 @@
 
 (defonce dev-chan (chan))
 
-(defn wait-on-dev-chan [] (>!! dev-chan :wait))
+(defn wait-dev-chan [msg] (>!! dev-chan msg))
+
+(defn poll-dev-chan [] (poll! dev-chan))
 
 (defn clear-dev-chan
   []
