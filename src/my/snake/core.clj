@@ -1,5 +1,6 @@
 (ns my.snake.core
   (:require
+    [clojure.core.async :refer [>!! <! chan go poll!]]
    [clojure.core.match :refer [match]]
    [my.snake.engine :refer [start exit]]
    [my.snake.utils :as u]
@@ -19,10 +20,19 @@
 (def ^:private ^:const pillar-box 16) ;; (/ (- screen-width grid-width) 2)
 (def ^:private ^:const letter-box 12) ;; (/ (- screen-height grid-height) 2)
 
-(def ^:private ^:const start-col 1)
+(def ^:private ^:const start-col 2)
 (def ^:private ^:const start-row 12)
 
 (def all-grids (vec (for [c (range cols) r (range rows)] [c r])))
+
+(defonce dev-chan (chan))
+
+(defn wait-on-dev-chan [] (>!! dev-chan :wait))
+
+(defn clear-dev-chan
+  []
+  (go (when-let [_ (poll! dev-chan)]
+        (<! dev-chan))))
 
 (defn- random-food-pos
   [occupied]
@@ -32,8 +42,7 @@
     (get empties choice)))
 
 (defn- grid-coord
-  "returns the coordinate of top left corner of the given grid in vector,
-  e.g. [48 60] for row 1 / col 2"
+  "returns the coordinate of top left corner of the given grid in vector"
   [col row]
   [(+ (* col grid-size) pillar-box)
    (+ (* row grid-size) letter-box)])
@@ -61,6 +70,7 @@
    {:textures {:background (create-background-texture)
                :head (grid-texture Color/NAVY)
                :body (grid-texture Color/OLIVE)
+               :tail (grid-texture Color/YELLOW)
                :food (grid-texture Color/MAROON)}
     :fonts {:game-over (g/bitmap-font {:color Color/RED :scale 4})
             :press-enter (g/bitmap-font {:color Color/BLUE :scale 2})}}))
@@ -74,11 +84,14 @@
                   :grow? false
                   :move? false
                   :new-food? false}
-     :entities {:head {:col start-col
-                       :row start-row
-                       :direction :right
-                       :texture :head}
-                :bodies []
+     :entities {:snake [{:col start-col
+                         :row start-row
+                         :direction :right
+                         :texture :head}
+                        {:col (dec start-col)
+                         :row start-row
+                         :direction :right
+                         :texture :tail}]
                 :food {:col food-col
                        :row food-row
                        :texture :food}}}))
@@ -113,7 +126,7 @@
           (match event
 
             [:move direction] (assoc-in acc
-                                        [:entities :head :direction]
+                                        [:entities :snake 0 :direction]
                                         direction)
             :else acc)))]
 
@@ -137,9 +150,7 @@
 (defn- update-food
   [state _]
   (if (get-in state [:conditions :new-food?])
-    (let [head (get-in state [:entities :head])
-          bodies (get-in state [:entities :bodies])
-          occupied (->> (conj bodies head)
+    (let [occupied (->> (get-in state [:entities :snake])
                         (mapv #(vector (:col %) (:row %))))
           [food-col food-row] (random-food-pos occupied)
           new-food (-> (get-in state [:entities :food])
@@ -149,56 +160,46 @@
           (assoc-in [:conditions :new-food?] false)))
     state))
 
-(defn- move-entity
-  [{:keys [col row direction] :as entity}]
-  (let [[new-col new-row] (case direction
-                            :right [(inc col) row]
-                            :left [(dec col) row]
-                            :up [col (inc row)]
-                            :down [col (dec row)])]
-    (assoc entity :col new-col :row new-row)))
-
-(defn- update-bodies
+(defn- move-snake
   [state _]
   (letfn
-   [(grow-body
-      []
-      (let [bodies (get-in state [:entities :bodies])
-            head (get-in state [:entities :head])
-            new-body (assoc head :texture :body)
-            new-bodies (conj bodies new-body)]
-        (-> state
-            (assoc-in [:entities :bodies] new-bodies)
-            (assoc-in [:conditions :grow?] false))))
+    [(move-piece
+      [{:keys [col row direction] :as entity}]
+      (let [[new-col new-row] (case direction
+                                :right [(inc col) row]
+                                :left [(dec col) row]
+                                :up [col (inc row)]
+                                :down [col (dec row)])]
+        (assoc entity :col new-col :row new-row)))
 
-    (move-bodies
-      []
-      (let [bodies (get-in state [:entities :bodies])]
-        (if (empty? bodies)
-          state
-          (let [new-bodies (mapv move-entity bodies)
-                new-directions (->> (get-in state [:entities :head])
-                                    (conj new-bodies)
-                                    (rest)
-                                    (mapv :direction))
-                new-new-bodies (->> (mapv vector new-bodies new-directions)
-                                    (mapv #(assoc (first %)
-                                                  :direction
-                                                  (second %))))]
-            (assoc-in state [:entities :bodies] new-new-bodies)))))]
-
-   (if (get-in state [:conditions :move?])
-     (if (get-in state [:conditions :grow?])
-       (grow-body)
-       (move-bodies))
+     (update-direction
+       [snake original]
+       (->> (cons (first snake) (butlast original))
+        (mapv vector snake)
+        (mapv (fn [[piece {d :direction}]]
+                (assoc piece :direction d)))))]
+    
+    (if (get-in state [:conditions :move?])
+     (let [snake (get-in state [:entities :snake])
+           new-snake (-> (mapv move-piece snake)
+                         (update-direction snake))]
+       (assoc-in state [:entities :snake] new-snake))
      state)))
 
-(defn- update-head
-  [state _]
-  (if (get-in state [:conditions :move?])
-    (let [new-head (move-entity (get-in state [:entities :head]))]
-      (assoc-in state [:entities :head] new-head))
-    state))
+(defn- grow-snake
+  [state {old-state :state}]
+  (let [grow? (get-in state [:conditions :grow?])
+        move? (get-in state [:conditions :move?])]
+    (if (and grow? move?)
+      (let [snake (get-in state [:entities :snake])
+            old-tail (last (get-in old-state [:entities :snake]))
+            new-snake (-> snake
+                          (assoc-in [(dec (count snake)) :texture] :body)
+                          (conj old-tail))]
+       (-> state
+           (assoc-in [:entities :snake] new-snake)
+           (assoc-in [:conditions :grow?] false)))
+     state)))
 
 (defn- check-collision
   [state _]
@@ -207,12 +208,13 @@
       [{c1 :col r1 :row} {c2 :col r2 :row}]
       (and (= c1 c2) (= r1 r2)))]
 
-   (let [{:keys [col row] :as head} (get-in state [:entities :head])
+   (let [{:keys [col row] :as head} (get-in state [:entities :snake 0])
          out-of-bound? (or (< row 0)
                            (<= rows row)
                            (< col 0)
                            (<= cols col))
-         bump? (->> (get-in state [:entities :bodies])
+         bump? (->> (get-in state [:entities :snake])
+                    (rest)
                     (some #(collided? head %)))
          food (get-in state [:entities :food])
          eat? (collided? head food)
@@ -229,8 +231,8 @@
         (handle-events data)
         (update-timers data)
         (update-food data)
-        (update-bodies data)
-        (update-head data)
+        (move-snake data)
+        (grow-snake data)
         (check-collision data))))
 
 (defn- render
