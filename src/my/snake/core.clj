@@ -1,6 +1,6 @@
 (ns my.snake.core
   (:require
-    [clojure.core.async :refer [>!! <! chan go poll!]]
+   [clojure.core.async :refer [>!! <! chan go poll!]]
    [clojure.core.match :refer [match]]
    [my.snake.engine :refer [start exit]]
    [my.snake.utils :as u]
@@ -74,18 +74,18 @@
                :body (grid-texture Color/OLIVE)
                :tail (grid-texture Color/YELLOW)
                :food (grid-texture Color/MAROON)}
-    :fonts {:game-over (g/bitmap-font {:color Color/RED :scale 4})
-            :press-enter (g/bitmap-font {:color Color/BLUE :scale 2})}}))
+    :fonts {:game-mode (g/bitmap-font {:color Color/RED :scale 4})
+            :press-key (g/bitmap-font {:color Color/BLUE :scale 2})}}))
 
 (defn- initial-state
   []
   (let [[food-col food-row] (random-food-pos [[start-col start-row]])]
-
-    {:timers {:move {:value 0 :limit 0.1}}
-     :conditions {:game-over? false
-                  :grow? false
+    {:mode :running
+     :events []
+     :conditions {:grow? false
                   :move? false
                   :new-food? false}
+     :timers {:move {:value 0 :limit 0.1}}
      :entities {:snake [{:col start-col
                          :row start-row
                          :direction :right
@@ -109,6 +109,7 @@
         Input$Keys/DOWN [:move :down]
         Input$Keys/UP [:move :up]
         Input$Keys/ENTER [:enter]
+        Input$Keys/ESCAPE [:esc]
         nil))]
 
    (case mode
@@ -117,23 +118,21 @@
 
 (defn- handle-events
   [state _]
-  (let [game-over? (get-in state [:conditions :game-over?])]
-    (letfn
-     [(handle-event
-        [acc event]
-        (if game-over?
-          (match event
-            [:enter] (initial-state)
-            :else acc)
-          (match event
+  (letfn
+   [(handle-event
+      [acc event]
+      (let [mode (:mode state)]
+        (match [mode event]
+          [:running [:esc]] (assoc acc :mode :paused)
+          [:running [:move direction]] (assoc-in acc
+                                                 [:entities :snake 0 :direction]
+                                                 direction)
+          [:game-over [:enter]] (initial-state)
+          [:paused [:enter]] (assoc acc :mode :running)
+          :else acc)))]
 
-            [:move direction] (assoc-in acc
-                                        [:entities :snake 0 :direction]
-                                        direction)
-            :else acc)))]
-
-     (-> (reduce handle-event state (:events state))
-         (assoc :events [])))))
+   (-> (reduce handle-event state (:events state))
+       (assoc :events []))))
 
 (defn- update-timers
   [state {:keys [delta-time]}]
@@ -165,7 +164,7 @@
 (defn- move-snake
   [state _]
   (letfn
-    [(move-piece
+   [(move-piece
       [{:keys [col row direction] :as entity}]
       (let [[new-col new-row] (case direction
                                 :right [(inc col) row]
@@ -174,14 +173,14 @@
                                 :down [col (dec row)])]
         (assoc entity :col new-col :row new-row)))
 
-     (update-direction
-       [snake original]
-       (->> (cons (first snake) (butlast original))
-        (mapv vector snake)
-        (mapv (fn [[piece {d :direction}]]
-                (assoc piece :direction d)))))]
-    
-    (if (get-in state [:conditions :move?])
+    (update-direction
+      [snake original]
+      (->> (cons (first snake) (butlast original))
+           (mapv vector snake)
+           (mapv (fn [[piece {d :direction}]]
+                   (assoc piece :direction d)))))]
+
+   (if (get-in state [:conditions :move?])
      (let [snake (get-in state [:entities :snake])
            new-snake (-> (mapv move-piece snake)
                          (update-direction snake))]
@@ -198,10 +197,10 @@
             new-snake (-> snake
                           (assoc-in [(dec (count snake)) :texture] :body)
                           (conj old-tail))]
-       (-> state
-           (assoc-in [:entities :snake] new-snake)
-           (assoc-in [:conditions :grow?] false)))
-     state)))
+        (-> state
+            (assoc-in [:entities :snake] new-snake)
+            (assoc-in [:conditions :grow?] false)))
+      state)))
 
 (defn- check-collision
   [state _]
@@ -219,23 +218,24 @@
                     (rest)
                     (some #(collided? head %)))
          food (get-in state [:entities :food])
-         eat? (collided? head food)
-         new-conditions (cond-> (:conditions state)
-                          (or out-of-bound? bump?) (assoc :game-over? true)
-                          eat? (assoc :grow? true :new-food? true))]
-     (assoc state :conditions new-conditions))))
+         eat? (collided? head food)]
+     (cond-> state
+       (or out-of-bound? bump?) (assoc :mode :game-over)
+       eat? (-> (assoc-in [:conditions :grow?] true)
+                (assoc-in [:conditions :new-food?] true))))))
 
 (defn- update-state
   [state data]
-  (if (get-in state [:conditions :game-over?])
-    (handle-events state data)
-    (-> state
-        (handle-events data)
-        (update-timers data)
-        (update-food data)
-        (move-snake data)
-        (grow-snake data)
-        (check-collision data))))
+  (let [new-state (handle-events state data)
+        mode (:mode new-state)]
+    (if (= mode :running)
+      (-> new-state
+          (update-timers data)
+          (update-food data)
+          (move-snake data)
+          (grow-snake data)
+          (check-collision data))
+      new-state)))
 
 (defn- render
   [state {:keys [batch textures fonts]} & _]
@@ -250,15 +250,21 @@
       [batch entities]
       (run! #(draw-entity batch %) entities))]
 
-   (u/draw-texture batch (:background textures) {:x 0 :y 0})
-   (->> (:entities state)
-        (u/flatten-entities)
-        (draw-entities batch))
+   (let [mode (:mode state)]
 
-   (when (get-in state [:conditions :game-over?])
-     (u/draw-text batch (:game-over fonts) {:text "GAME OVER" :x 220 :y 400})
-     (u/draw-text batch (:press-enter fonts) {:text "Press Enter to Restart"
-                                              :x 250 :y 320}))))
+      (u/draw-texture batch (:background textures) {:x 0 :y 0})
+      (->> (:entities state)
+           (u/flatten-entities)
+           (draw-entities batch))
+
+      (when (= mode :game-over)
+        (u/draw-text batch (:game-mode fonts) {:text "GAME OVER" :x 220 :y 400})
+        (u/draw-text batch (:press-key fonts) {:text "Press Enter to Restart"
+                                               :x 250 :y 320}))
+      (when (= mode :paused)
+        (u/draw-text batch (:game-mode fonts) {:text "Paused" :x 300 :y 400})
+        (u/draw-text batch (:press-key fonts) {:text "Press Enter to Resume"
+                                               :x 260 :y 320})))))
 
 (def config
   {:title "Snake"

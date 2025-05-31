@@ -87,9 +87,7 @@
       [_]
       (let [{:keys [w h resources-fn state-fn process-input-fn]} config]
         (println "Create game")
-        (reset! state (-> (state-fn)
-                          (assoc :events []
-                                 :exit? false)))
+        (reset! state (state-fn))
         (reset! resources (-> (resources-fn)
                               (assoc :batch (g/sprite-batch)
                                      :viewport (FitViewport. w h))))
@@ -105,7 +103,7 @@
 
     (render
       [_]
-      (when (:exit? @state)
+      (when (= (:mode @state) :exiting)
         (println "Shutting down application...")
         (.exit Gdx/app))
       (println "FPS:" (.getFramesPerSecond Gdx/graphics))
@@ -168,4 +166,4 @@
 
 (defn exit
   [game]
-  (swap! (:state game) assoc :exit? true))
+  (swap! (:state game) assoc :mode :exiting))
