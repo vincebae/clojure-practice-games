@@ -12,21 +12,23 @@
 
 (defonce nrepl-server (atom nil))
 (defonce game (atom nil))
+(defonce dev-chan (chan))
 
-(def dev-chan (chan))
+(def main-ns "my.app")
 
-(defn- init-and-start-game!
+(defn- init-and-start!
+   []
+   (require (symbol main-ns))
+   (let [init-fn (ns-resolve (symbol main-ns) 'init)
+         start-fn (ns-resolve (symbol main-ns) 'start)]
+     (reset! game (init-fn))
+     (start-fn @game)))
+
+(defn stop! 
   []
-  (eval `(do
-           (require 'my.app)
-           (reset! game (eval (read-string "(my.app/init-game)")))
-           ((eval (read-string "my.app/start-game")) @game))))
-
-(defn exit-game!
-  []
-  (eval `(do
-           (require 'my.app)
-           ((eval (read-string "my.app/exit-game")) @game))))
+  (require (symbol main-ns))
+  (let [stop-fn (ns-resolve (symbol main-ns) 'stop)]
+    (stop-fn @game)))
 
 (defn- handle-throwable! [t]
   (binding [*print-level* 3]
@@ -44,7 +46,7 @@
 
 (defn- start-dev-loop!
   []
-  (try (init-and-start-game!)
+  (try (init-and-start!)
        (catch Throwable t
          (handle-throwable! t)))
   (loop []

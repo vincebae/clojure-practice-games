@@ -64,58 +64,58 @@
       (let [pos-vector (.unproject (gr :viewport) (g/vector2 x y))]
         {:x (.-x pos-vector) :y (.-y pos-vector)}))]
 
-    (reify InputProcessor
-      (keyDown
-        [_ keycode]
-        (process-input :key-down {:keycode keycode}))
+   (reify InputProcessor
+     (keyDown
+       [_ keycode]
+       (process-input :key-down {:keycode keycode}))
 
-      (keyUp
-        [_ keycode]
-        (process-input :key-up {:keycode keycode}))
+     (keyUp
+       [_ keycode]
+       (process-input :key-up {:keycode keycode}))
 
-      (keyTyped
-        [_ character]
-        (process-input :key-typed {:character character}))
+     (keyTyped
+       [_ character]
+       (process-input :key-typed {:character character}))
 
-      (touchDown
-        [_ x y pointer button]
-        (let [{world-x :x world-y :y} (world-pos x y)]
-          (process-input :touch-down {:x world-x
-                                      :y world-y
-                                      :pointer pointer
-                                      :button button})))
+     (touchDown
+       [_ x y pointer button]
+       (let [{world-x :x world-y :y} (world-pos x y)]
+         (process-input :touch-down {:x world-x
+                                     :y world-y
+                                     :pointer pointer
+                                     :button button})))
 
-      (touchUp
-        [_ x y pointer button]
-        (let [{world-x :x world-y :y} (world-pos x y)]
-          (process-input :touch-up {:x world-x
-                                    :y world-y
-                                    :pointer pointer
-                                    :button button})))
+     (touchUp
+       [_ x y pointer button]
+       (let [{world-x :x world-y :y} (world-pos x y)]
+         (process-input :touch-up {:x world-x
+                                   :y world-y
+                                   :pointer pointer
+                                   :button button})))
 
-      (touchDragged
-        [_ x y pointer]
-        (let [{world-x :x world-y :y} (world-pos x y)]
-          (process-input :touch-dragged {:x world-x
-                                         :y world-y
-                                         :pointer pointer})))
+     (touchDragged
+       [_ x y pointer]
+       (let [{world-x :x world-y :y} (world-pos x y)]
+         (process-input :touch-dragged {:x world-x
+                                        :y world-y
+                                        :pointer pointer})))
 
-      (touchCancelled
-        [_ x y pointer button]
-        (let [{world-x :x world-y :y} (world-pos x y)]
-          (process-input :touch-cancelled {:x world-x
-                                           :y world-y
-                                           :pointer pointer
-                                           :button button})))
+     (touchCancelled
+       [_ x y pointer button]
+       (let [{world-x :x world-y :y} (world-pos x y)]
+         (process-input :touch-cancelled {:x world-x
+                                          :y world-y
+                                          :pointer pointer
+                                          :button button})))
 
-      (mouseMoved
-        [_ x y]
-        (let [{world-x :x world-y :y} (world-pos x y)]
-          (process-input :mouse-moved {:x world-x :y world-y})))
+     (mouseMoved
+       [_ x y]
+       (let [{world-x :x world-y :y} (world-pos x y)]
+         (process-input :mouse-moved {:x world-x :y world-y})))
 
-      (scrolled
-        [_ amount-x amount-y]
-        (process-input :scrolled {:amount-x amount-x :amount-y amount-y})))))
+     (scrolled
+       [_ amount-x amount-y]
+       (process-input :scrolled {:amount-x amount-x :amount-y amount-y})))))
 
 (defn- create-listener
   [{:keys [w h

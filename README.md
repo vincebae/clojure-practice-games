@@ -51,9 +51,12 @@ $ bb dev
 ## Things to practice
 
 In no particular order
-- Pausing
 - Menu
+- HUD
 - Animation
+- Pathing
+
+Some games to clone
 - Flappy Bird
 - Alcanoid
 - Space Invader

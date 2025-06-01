@@ -6,7 +6,7 @@
          '[clojure.pprint :refer [pprint]]
          '[clojure.string :as s]
          '[clojure.test :as test]
-         '[dev :refer [game exit-game! restart!]]
+         '[dev :refer [game stop! restart!]]
          '[my.snake.core :refer [clear-dev-chan poll-dev-chan]])
 
 game
@@ -14,7 +14,7 @@ game
 (deref (:state @game))
 (deref (:resources @game))
 (restart!)
-(exit-game!)
+(stop!)
 (load-file "src/my/snake/core.clj")
 (poll-dev-chan)
 (clear-dev-chan)

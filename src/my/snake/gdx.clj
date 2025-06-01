@@ -4,7 +4,9 @@
    [com.badlogic.gdx.graphics Color Pixmap Pixmap$Format Texture]
    [com.badlogic.gdx.graphics.g2d BitmapFont Sprite SpriteBatch]
    [com.badlogic.gdx.math MathUtils Rectangle Vector2]
-   [com.badlogic.gdx.utils ScreenUtils])
+   [com.badlogic.gdx.scenes.scene2d Stage]
+   [com.badlogic.gdx.utils ScreenUtils]
+   [com.badlogic.gdx.utils.viewport FitViewport ScreenViewport])
   (:gen-class))
 
 (def f float)
@@ -79,4 +81,27 @@
 
 (defn vector2 [x y] (Vector2. x y))
 
+(defn fit-viewport [w h] (FitViewport. w h))
+
+(defn screen-viewport
+  [w h]
+  (let [viewport (ScreenViewport.)]
+    (doto viewport
+      (.setScreenWidth w)
+      (.setScreenHeight h))
+    viewport))
+
+(defn stage
+  [viewport batch]
+  (Stage. viewport batch))
+
+(defn draw-texture
+  [batch texture {:keys [x y w h]}]
+  (if (and w h)
+    (.draw batch texture (f x) (f y) (f w) (f h))
+    (.draw batch texture (f x) (f y))))
+
+(defn draw-text
+  [batch font {:keys [text x y]}]
+  (.draw font batch text (f x) (f y)))
 

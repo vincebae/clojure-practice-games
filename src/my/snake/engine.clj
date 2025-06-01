@@ -5,8 +5,7 @@
    [com.badlogic.gdx ApplicationListener Files$FileType Gdx InputProcessor]
    [com.badlogic.gdx.backends.lwjgl3
     Lwjgl3Application
-    Lwjgl3ApplicationConfiguration]
-   [com.badlogic.gdx.utils.viewport FitViewport])
+    Lwjgl3ApplicationConfiguration])
   (:gen-class))
 
 (defn- create-input-processor
@@ -85,12 +84,18 @@
   (reify ApplicationListener
     (create
       [_]
-      (let [{:keys [w h resources-fn state-fn process-input-fn]} config]
+      (let [{:keys [w h resources-fn state-fn process-input-fn]} config
+            batch (g/sprite-batch)
+            viewport (g/fit-viewport w h)
+            hud-viewport (g/screen-viewport w h)
+            hud-stage (g/stage hud-viewport batch)]
         (println "Create game")
         (reset! state (state-fn))
         (reset! resources (-> (resources-fn)
-                              (assoc :batch (g/sprite-batch)
-                                     :viewport (FitViewport. w h))))
+                              (assoc :batch batch
+                                     :viewport viewport
+                                     :hud-viewport hud-viewport
+                                     :hud-stage hud-stage)))
         (->> (create-input-processor process-input-fn resources state)
              (.setInputProcessor Gdx/input))))
 

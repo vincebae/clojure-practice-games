@@ -244,7 +244,7 @@
       [batch {:keys [col row texture]}]
       (let [[x y] (grid-coord col row)
             tex (get textures texture)]
-        (u/draw-texture batch tex {:x x :y y :w grid-size :h grid-size})))
+        (g/draw-texture batch tex {:x x :y y :w grid-size :h grid-size})))
 
     (draw-entities
       [batch entities]
@@ -252,18 +252,18 @@
 
    (let [mode (:mode state)]
 
-      (u/draw-texture batch (:background textures) {:x 0 :y 0})
+      (g/draw-texture batch (:background textures) {:x 0 :y 0})
       (->> (:entities state)
            (u/flatten-entities)
            (draw-entities batch))
 
       (when (= mode :game-over)
-        (u/draw-text batch (:game-mode fonts) {:text "GAME OVER" :x 220 :y 400})
-        (u/draw-text batch (:press-key fonts) {:text "Press Enter to Restart"
+        (g/draw-text batch (:game-mode fonts) {:text "GAME OVER" :x 220 :y 400})
+        (g/draw-text batch (:press-key fonts) {:text "Press Enter to Restart"
                                                :x 250 :y 320}))
       (when (= mode :paused)
-        (u/draw-text batch (:game-mode fonts) {:text "Paused" :x 300 :y 400})
-        (u/draw-text batch (:press-key fonts) {:text "Press Enter to Resume"
+        (g/draw-text batch (:game-mode fonts) {:text "Paused" :x 300 :y 400})
+        (g/draw-text batch (:press-key fonts) {:text "Press Enter to Resume"
                                                :x 260 :y 320})))))
 
 (def config
